@@ -31,64 +31,50 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Map<String, dynamic> _getCategoryStyle(String category) {
-    final cat = category.toLowerCase();
-    if (cat.contains('waste') || cat.contains('garbage')) {
-      return {'emoji': '🗑️', 'bg': const Color(0xFFFEF3C7), 'color': const Color(0xFFD97706)};
-    }
-    if (cat.contains('pothole') || cat.contains('road') || cat.contains('street')) {
-      return {'emoji': '🚧', 'bg': const Color(0xFFFEF9C3), 'color': const Color(0xFFCA8A04)};
-    }
-    if (cat.contains('tree') || cat.contains('green') || cat.contains('fallen')) {
-      return {'emoji': '🌳', 'bg': const Color(0xFFECFDF5), 'color': const Color(0xFF059669)};
-    }
-    if (cat.contains('water') || cat.contains('leak') || cat.contains('drain')) {
-      return {'emoji': '💧', 'bg': const Color(0xFFEFF6FF), 'color': const Color(0xFF2563EB)};
-    }
-    return {'emoji': '✨', 'bg': const Color(0xFFEEF2FF), 'color': const Color(0xFF4F46E5)};
-  }
-
-  Widget _buildStatusBadge(String status) {
-    Color bg;
-    Color text;
-    String label;
-
-    switch (status) {
-      case 'reported':
-        bg = const Color(0xFFFFEDD5);
-        text = const Color(0xFFEA580C);
-        label = 'Pending';
-        break;
-      case 'in-progress':
-        bg = const Color(0xFFDBEAFE);
-        text = const Color(0xFF2563EB);
-        label = 'In Progress';
-        break;
-      case 'resolved':
-        bg = const Color(0xFFD1FAE5);
-        text = const Color(0xFF059669);
-        label = 'Resolved';
-        break;
-      default:
-        bg = const Color(0xFFF1F5F9);
-        text = const Color(0xFF64748B);
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: text.withOpacity(0.15)),
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: GoogleFonts.inter(
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          color: text,
-          letterSpacing: 0.5,
+  Widget _buildStatCard(String value, String label, Color valueColor, Widget icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: valueColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF94A3B8),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                icon,
+              ],
+            )
+          ],
         ),
       ),
     );
@@ -101,444 +87,195 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadFeed,
-          color: const Color(0xFFF43F5E),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Custom Header pill-shadow matching web
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'LOCATION',
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF94A3B8),
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              const Icon(LucideIcons.mapPin, size: 14, color: Color(0xFFF43F5E)),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Bangalore, KA',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          // Bell ring indicator
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFF1F5F9)),
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                const Icon(LucideIcons.bell, size: 18, color: Color(0xFF64748B)),
-                                Positioned(
-                                  top: 10,
-                                  right: 12,
-                                  child: Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF43F5E),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          // Avatar Block
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(context, '/profile');
-                            },
-                            child: user != null
-                                ? Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: const Color(0xFFF43F5E), width: 2),
-                                      image: DecorationImage(
-                                        image: NetworkImage(user.photoURL),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF8FAFC),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(LucideIcons.user, size: 18),
-                                  ),
-                          )
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Greeting Hero banner text
-                Text(
-                  user != null ? 'Hey ${user.displayName}!' : 'Welcome Resident!',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                Text(
-                  'Explore pending hazards and resolutions in your vicinity.',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Bento Grid Stats Section
-                Row(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RefreshIndicator(
+              onRefresh: _loadFeed,
+              color: const Color(0xFFF43F5E),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100), // Extra bottom padding for nav bar
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: Container(
-                        height: 110,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '1,000',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                            Text(
-                              'TOTAL REPORTS',
-                              style: GoogleFonts.inter(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF94A3B8),
-                                letterSpacing: 1,
-                              ),
-                            )
-                          ],
-                        ),
+                    // TOP LOCATION HEADER
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Container(
-                        height: 110,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '823',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF10B981),
-                              ),
-                            ),
-                            Text(
-                              'RESOLVED SPOTS',
-                              style: GoogleFonts.inter(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF94A3B8),
-                                letterSpacing: 1,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Explore Local Map Interactive Card CTA matches exactly!
-                InkWell(
-                  onTap: () => Navigator.pushNamed(context, '/map'),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.01),
-                          blurRadius: 10,
-                        )
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFD1FAE5)),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text('🗺️', style: TextStyle(fontSize: 24)),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Explore Local Issue Map',
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF0F172A),
-                                ),
+                                'LOCATION',
+                                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF94A3B8), letterSpacing: 1.5),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'See active hazards plotted in your neighborhood using real GPS',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF94A3B8),
-                                ),
-                              ),
+                              Row(
+                                children: [
+                                  const Icon(LucideIcons.mapPin, size: 14, color: Color(0xFF10B981)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'BANGALORE, KA',
+                                    style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              )
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Icon(LucideIcons.arrowRight, size: 16, color: Color(0xFF64748B)),
+                          Row(
+                            children: [
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF1F5F9))),
+                                child: const Icon(LucideIcons.bell, size: 18, color: Color(0xFF64748B)),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => Navigator.pushNamed(context, '/profile'),
+                                child: Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle, border: Border.all(color: const Color(0xFF10B981), width: 2),
+                                    image: DecorationImage(image: NetworkImage(user?.photoURL ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=123'), fit: BoxFit.cover),
+                                  ),
+                                ),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 2x2 STATS GRID
+                    Row(
+                      children: [
+                        _buildStatCard('1,000', 'TOTAL REPORTS', const Color(0xFF0F172A), const Text('📊', style: TextStyle(fontSize: 16))),
+                        const SizedBox(width: 16),
+                        _buildStatCard('800', 'RESOLVED', const Color(0xFF10B981), Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFECFDF5), shape: BoxShape.circle), child: const Icon(LucideIcons.check, size: 12, color: Color(0xFF10B981)))),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Feed Section Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Recent Hazards reported',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
-                      ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildStatCard('180', 'PENDING', const Color(0xFFF59E0B), const Text('⏳', style: TextStyle(fontSize: 16))),
+                        const SizedBox(width: 16),
+                        _buildStatCard('20', 'URGENT', const Color(0xFFF43F5E), const Text('🔥', style: TextStyle(fontSize: 16))),
+                      ],
                     ),
-                    Text(
-                      'See All',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFF43F5E),
-                      ),
+                    const SizedBox(height: 32),
+
+                    // RECENT REPORTS HEADER
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Recent Reports', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                        Text('SEE ALL →', style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF10B981))),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // List Feed
-                _isLoading
-                    ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: Color(0xFFF43F5E))))
-                    : _issues.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'No reports listed yet. Be the first one!',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(color: Colors.grey),
-                            ),
-                          )
-                        : ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _issues.length > 5 ? 5 : _issues.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final issue = _issues[index];
-                              final style = _getCategoryStyle(issue.category);
-
-                              return Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: style['bg'],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        style['emoji'],
-                                        style: const TextStyle(fontSize: 20),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // REPORTS LIST
+                    _isLoading
+                        ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: Color(0xFF10B981))))
+                        : _issues.isEmpty
+                            ? const Padding(padding: EdgeInsets.all(24), child: Text('No reports yet.'))
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _issues.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  final issue = _issues[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      // Routes to our new tracking screen!
+                                      Navigator.pushNamed(context, '/tracking', arguments: issue);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFF1F5F9))),
+                                      child: Row(
                                         children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  issue.title,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: GoogleFonts.inter(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: const Color(0xFF0F172A),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              _buildStatusBadge(issue.status),
-                                            ],
+                                          Container(
+                                            width: 50, height: 50,
+                                            decoration: BoxDecoration(color: const Color(0xFFFEF9C3), borderRadius: BorderRadius.circular(16)),
+                                            alignment: Alignment.center,
+                                            child: const Text('🚧', style: TextStyle(fontSize: 24)),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            issue.description,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF64748B),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(issue.title, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                                                const SizedBox(height: 4),
+                                                Text(issue.address ?? 'Bangalore, KA', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF94A3B8))),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              const Icon(LucideIcons.user, size: 12, color: Color(0xFF94A3B8)),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'By ${issue.reporterName}',
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF94A3B8),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              const Icon(LucideIcons.alertTriangle, size: 12, color: Color(0xFF94A3B8)),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${issue.urgency} Urgency',
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF94A3B8),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(color: const Color(0xFFFFEDD5), borderRadius: BorderRadius.circular(100)),
+                                            child: Text('PENDING', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFFEA580C))),
+                                          )
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                const SizedBox(height: 32),
-              ],
+                                  );
+                                },
+                              ),
+                  ],
+                ),
+              ),
             ),
-          ),
+            
+            // FLOATING BOTTOM NAVIGATION BAR
+            Positioned(
+              bottom: 24, left: 24, right: 24,
+              child: Container(
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(35),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavItem(LucideIcons.home, 'HOME', true, () {}),
+                    _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushNamed(context, '/report')),
+                    _buildNavItem(LucideIcons.list, 'MY ISSUES', false, () {}),
+                    _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushNamed(context, '/map')),
+                  ],
+                ),
+              ),
+            )
+          ],
         ),
       ),
-      // Floating Report Trigger Matches perfectly!
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/report');
-        },
-        backgroundColor: const Color(0xFF0F172A),
-        foregroundColor: Colors.white,
-        icon: const Icon(LucideIcons.plus, size: 16),
-        label: Text(
-          'Report Incident',
-          style: GoogleFonts.spaceGrotesk(
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
-            letterSpacing: 0.5,
-          ),
-        ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8), size: 24),
+          const SizedBox(height: 4),
+          Text(label, style: GoogleFonts.spaceGrotesk(fontSize: 9, fontWeight: FontWeight.w900, color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8))),
+        ],
       ),
     );
   }

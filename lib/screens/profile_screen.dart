@@ -20,213 +20,201 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Widget _buildMenuCard(String title, IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: const Color(0xFF64748B)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ),
+            const Icon(LucideIcons.chevronRight, size: 20, color: Color(0xFFCBD5E1)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = _firebaseService.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Resident Profile',
-          style: GoogleFonts.spaceGrotesk(
-            color: const Color(0xFF0F172A), 
-            fontWeight: FontWeight.w900, 
-            fontSize: 16
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Color(0xFF0F172A)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF4F7F9), // Matching the lighter React background
       body: SafeArea(
-        child: user == null
-            ? Center(
-                child: InkWell(
-                  onTap: () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: Text(
-                    'Guest Resident: Click to Login', 
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold)
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              // 1. Header Row (Avatar + Info)
+              Row(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24), // Squircle matching React
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: (user?.photoURL != null && !user!.photoURL!.contains('.svg'))
+                          ? Image.network(user.photoURL!, fit: BoxFit.cover)
+                          : const Icon(LucideIcons.user, size: 40, color: Color(0xFF94A3B8)),
+                    ),
                   ),
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Profile card
-                    Container(
-                      padding: const EdgeInsets.all(24),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.displayName ?? 'Avlokita.pathania',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user?.email ?? 'avlokita.pathania@gmail.com',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'USER MEMBER',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF4F46E5),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // 2. Stats Grid
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+                        ],
                       ),
                       child: Column(
                         children: [
-                          // Fixed Profile Image / Fallback Avatar
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFF43F5E), width: 3),
-                              color: const Color(0xFFFFE4E6), 
-                            ),
-                            child: ClipOval(
-                              child: (!user.photoURL.contains('.svg'))
-                                  ? Image.network(
-                                      user.photoURL,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(
-                                        LucideIcons.user,
-                                        color: Color(0xFFF43F5E),
-                                        size: 40,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      LucideIcons.user,
-                                      color: Color(0xFFF43F5E),
-                                      size: 40,
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
                           Text(
-                            user.displayName,
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0F172A),
-                            ),
+                            '4',
+                            style: GoogleFonts.spaceGrotesk(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            user.email,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF64748B),
-                            ),
+                            'REPORTS',
+                            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF94A3B8), letterSpacing: 1),
                           ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: user.role == 'admin' 
-                                  ? const Color(0xFFEEF2FF) 
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(
-                                color: user.role == 'admin' 
-                                    ? const Color(0xFFCABFFD) 
-                                    : const Color(0xFFE2E8F0)
-                              ),
-                            ),
-                            child: Text(
-                              user.role == 'admin' ? 'ADMINISTRATOR' : 'LOCAL CITIZEN',
-                              style: GoogleFonts.inter(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                color: user.role == 'admin' 
-                                    ? const Color(0xFF4F46E5) 
-                                    : const Color(0xFF64748B),
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          )
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Admin Dashboard Router
-                    if (user.role == 'admin') ...[
-                      InkWell(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/admin');
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(LucideIcons.shield, color: Colors.amber, size: 20),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Admin Console Action',
-                                      style: GoogleFonts.spaceGrotesk(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Review & mutate reported resident issues',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.blueGrey.shade400,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(LucideIcons.arrowRight, color: Colors.white, size: 16),
-                            ],
-                          ),
-                        ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Sign Out Button Card
-                    InkWell(
-                      onTap: _handleLogout,
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(LucideIcons.logOut, color: Colors.redAccent, size: 20),
-                            const SizedBox(width: 14),
-                            Text(
-                              'Sign Out from Desk',
-                              style: GoogleFonts.spaceGrotesk(
-                                color: const Color(0xFF0F172A),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                              ),
-                            )
-                          ],
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '3',
+                            style: GoogleFonts.spaceGrotesk(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF10B981)), // Green color matching design
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'RESOLVED',
+                            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF94A3B8), letterSpacing: 1),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 32),
+
+              // 3. Menu Items
+              _buildMenuCard('My Reports', LucideIcons.history, () {
+                // Route to your timelines screen (Image 1)
+                Navigator.pushNamed(context, '/my_issues'); 
+              }),
+              _buildMenuCard('Neighborhood Settings', LucideIcons.mapPin, () {}),
+              _buildMenuCard('Account Security', LucideIcons.shield, () {}),
+              
+              const SizedBox(height: 16),
+              
+              // Logout Button
+              _buildMenuCard('Sign Out', LucideIcons.logOut, _handleLogout),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/issue_tracking_screen.dart'; 
 import 'screens/admin_screen.dart';
 import 'widgets/sparkle_overlay.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,27 +18,74 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // TEMPORARY SEED CODE - Delete after running once
+  
   try {
     final firestore = FirebaseFirestore.instance;
-    final issuesSnapshot = await firestore.collection('issues').get();
+    final snapshot = await firestore.collection('issues').get();
     
-    if (issuesSnapshot.docs.isEmpty) {
-      await firestore.collection('issues').add({
-        'title': 'Blocked Storm Drain',
-        'description': 'Heavy rainfall has caused severe clogging in the main community drainage line, resulting in significant water logging on the civilian walkway.',
-        'category': 'water', // Triggers the 💧 icon layout
-        'urgency': 'High',
-        'status': 'pending',
-        'latitude': 12.9716, // Centers onto your Bangalore map
-        'longitude': 77.5946,
-        'reportedAt': DateTime.now().toIso8601String(),
-      });
-      print("🚀 SUCCESS: Database successfully seeded with perfect model data!");
+    // Only seed if the database has less than 3 items
+    if (snapshot.docs.length < 3) {
+      print("Seeding sample Bangalore issues...");
+      final issuesToAdd = [
+        {
+          'title': 'Deep Pothole on Main Road',
+          'description': 'Large pothole expanding rapidly near the J.P. Nagar 3rd Phase junction. Dangerous for two-wheelers at night.',
+          'category': 'POTHOLE',
+          'urgency': 'HIGH',
+          'status': 'reported',
+          'latitude': 12.9063,
+          'longitude': 77.5857,
+          'address': 'J.P. Nagar',
+          'createdAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+          'updatedAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        },
+        {
+          'title': 'Fallen Gulmohar Tree',
+          'description': 'Heavy rains caused a tree to fall, completely blocking the residential crossroad.',
+          'category': 'FALLEN TREE',
+          'urgency': 'HIGH',
+          'status': 'in-progress',
+          'latitude': 12.9408,
+          'longitude': 77.5641,
+          'address': 'Basavanagudi',
+          'createdAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          'updatedAt': DateTime.now().subtract(const Duration(hours: 10)).toIso8601String(),
+        },
+        {
+          'title': 'Overflowing Dumpster',
+          'description': 'Garbage bin has not been cleared for 4 days. Waste is spilling onto the pavement creating a severe hygiene hazard.',
+          'category': 'GARBAGE',
+          'urgency': 'MEDIUM',
+          'status': 'reported',
+          'latitude': 12.9345,
+          'longitude': 77.6214,
+          'address': 'Koramangala',
+          'createdAt': DateTime.now().subtract(const Duration(hours: 14)).toIso8601String(),
+          'updatedAt': DateTime.now().subtract(const Duration(hours: 14)).toIso8601String(),
+        },
+        {
+          'title': 'Broken Streetlight',
+          'description': 'Streetlight has been flickering and is now completely dead. Area is pitch black after 7 PM.',
+          'category': 'STREET LIGHT',
+          'urgency': 'LOW',
+          'status': 'resolved',
+          'latitude': 12.9783,
+          'longitude': 77.6408,
+          'address': 'Indiranagar',
+          'createdAt': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+          'updatedAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        }
+      ];
+
+      for (var data in issuesToAdd) {
+        await firestore.collection('issues').add(data);
+      }
+      print("🚀 SUCCESS: 4 Sample issues added to Firestore!");
     }
   } catch (e) {
-    print("Seeding error: $e");
+    print("Seed error: $e");
   }
+
   runApp(const SpotItApp());
 }
 
@@ -69,6 +117,7 @@ class SpotItApp extends StatelessWidget {
         '/report': (context) => const ReportScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/admin': (context) => const AdminScreen(),
+        '/tracking': (context) => const IssueTrackingScreen(),
       },
     );
   }

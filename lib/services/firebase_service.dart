@@ -10,55 +10,6 @@ class FirebaseService {
   // Stored active user profile in memory
   UserProfile? currentUser;
 
-  // Sample mock fallbacks to matches React application exactly
-  static final List<Issue> mockReports = [
-    Issue(
-      id: 'r1',
-      reporterUid: 'mock1',
-      reporterName: 'Anil K.',
-      title: 'Overflowing Garbage Bin',
-      description: 'Waste left unattended near Basavanagudi park causing strong odor and hygiene concerns.',
-      category: 'Waste',
-      urgency: 'Medium',
-      status: 'in-progress',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
-      latitude: 12.9716,
-      longitude: 77.5946,
-      address: 'Basavanagudi, Bangalore',
-    ),
-    Issue(
-      id: 'r2',
-      reporterUid: 'mock2',
-      reporterName: 'Supriya P.',
-      title: 'Large Dangerous Pothole',
-      description: 'Dangerous deep cavity right in front of the local school crossing. Needs prompt filling.',
-      category: 'Pothole',
-      urgency: 'High',
-      status: 'reported',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      updatedAt: DateTime.now().subtract(const Duration(hours: 5)),
-      latitude: 12.9725,
-      longitude: 77.5932,
-      address: 'Basavanagudi, Bangalore',
-    ),
-    Issue(
-      id: 'r3',
-      reporterUid: 'mock3',
-      reporterName: 'Ramesh H.',
-      title: 'Water Main Leak',
-      description: 'Underground pipe burst causing clean drinking water to flood the road pavement.',
-      category: 'Water Leak',
-      urgency: 'High',
-      status: 'resolved',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-      latitude: 12.9702,
-      longitude: 77.5961,
-      address: 'Basavanagudi, Bangalore',
-    ),
-  ];
-
   // Singleton pattern for simple global access across screens
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
@@ -83,7 +34,7 @@ class FirebaseService {
         uid: uid,
         email: trimmedEmail,
         displayName: capitalizedName,
-        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=$uid',
+        photoURL: 'https://api.dicebear.com/7.x/avataaars/png?seed=$uid', // Fixed to PNG for Android!
         role: trimmedEmail.toLowerCase().contains('admin') ? 'admin' : 'user',
       );
 
@@ -91,15 +42,15 @@ class FirebaseService {
       await _firestore.collection('users').doc(uid).set(currentUser!.toMap(), SetOptions(merge: true));
       return currentUser!;
     } catch (e) {
-      print('Firebase login failed, continuing with local fallback: $e');
+      print('Firebase login failed: $e');
       
-      // Local fallback representation
+      // Local fallback representation just in case auth servers drop
       String fallbackUid = 'local_uid_${trimmedEmail.hashCode}';
       currentUser = UserProfile(
         uid: fallbackUid,
         email: trimmedEmail,
         displayName: capitalizedName,
-        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=$fallbackUid',
+        photoURL: 'https://api.dicebear.com/7.x/avataaars/png?seed=$fallbackUid', // Fixed to PNG
         role: trimmedEmail.toLowerCase().contains('admin') ? 'admin' : 'user',
       );
       return currentUser!;
@@ -116,7 +67,7 @@ class FirebaseService {
     currentUser = null;
   }
 
-  // Report a new local hazard/incident
+  // Report a new local hazard/incident LIVE to Firestore
   Future<String> reportNewIssue({
     required String title,
     required String description,
@@ -148,19 +99,15 @@ class FirebaseService {
     );
 
     try {
-      // Create in Firestore
       await _firestore.collection('issues').doc(newId).set(newIssue.toMap());
-      // Insert locally in the mock dataset list as active sync support
-      mockReports.insert(0, newIssue);
       return newId;
     } catch (e) {
-      print('Firestore incident submission failed, fallback locally: $e');
-      mockReports.insert(0, newIssue);
-      return newId;
+      print('Firestore incident submission failed: $e');
+      throw Exception("Failed to submit to cloud.");
     }
   }
 
-  // Query issues
+  // Query issues LIVE from Firestore ONLY
   Future<List<Issue>> getIssues({String? status, String? category}) async {
     try {
       Query query = _firestore.collection('issues');
@@ -176,27 +123,13 @@ class FirebaseService {
       query = query.orderBy('createdAt', descending: true);
       
       QuerySnapshot snapshot = await query.get();
-      if (snapshot.docs.isEmpty) {
-        return _applyLocalFilters(status, category);
-      }
       
+      // Force map the live cloud documents!
       return snapshot.docs.map((doc) => Issue.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
     } catch (e) {
-      print('Firestore retrieve issues failed, reading local dataset: $e');
-      return _applyLocalFilters(status, category);
+      print('Firestore retrieve issues failed: $e');
+      return []; // Return completely empty list on failure so the UI shows the empty state correctly
     }
-  }
-
-  // Helper filter support for offline dataset
-  List<Issue> _applyLocalFilters(String? status, String? category) {
-    List<Issue> list = List.from(mockReports);
-    if (status != null && status.isNotEmpty) {
-      list = list.where((item) => item.status == status).toList();
-    }
-    if (category != null && category.isNotEmpty) {
-      list = list.where((item) => item.category == category).toList();
-    }
-    return list;
   }
 
   // Update status (e.g. from reported -> in-progress -> resolved)
@@ -209,29 +142,6 @@ class FirebaseService {
       });
     } catch (e) {
       print('Firestore status update failure: $e');
-    }
-
-    // Update locally as well
-    int index = mockReports.indexWhere((item) => item.id == id);
-    if (index != -1) {
-      final current = mockReports[index];
-      mockReports[index] = Issue(
-        id: current.id,
-        reporterUid: current.reporterUid,
-        reporterName: current.reporterName,
-        title: current.title,
-        description: current.description,
-        category: current.category,
-        urgency: current.urgency,
-        latitude: current.latitude,
-        longitude: current.longitude,
-        address: current.address,
-        imageUrl: current.imageUrl,
-        status: newStatus,
-        assignedTo: assignedAdmin ?? current.assignedTo,
-        createdAt: current.createdAt,
-        updatedAt: DateTime.now(),
-      );
     }
   }
 }
