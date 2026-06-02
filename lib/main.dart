@@ -9,6 +9,7 @@ import 'screens/report_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/issue_tracking_screen.dart'; 
 import 'screens/admin_screen.dart';
+import 'screens/my_issues_screen.dart';
 import 'widgets/sparkle_overlay.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 void main() async {
@@ -118,6 +119,7 @@ class SpotItApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/admin': (context) => const AdminScreen(),
         '/tracking': (context) => const IssueTrackingScreen(),
+        '/my_issues': (context) => const MyIssuesScreen(),
       },
     );
   }

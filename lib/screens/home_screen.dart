@@ -179,7 +179,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Recent Reports', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
-                        Text('SEE ALL →', style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF10B981))),
+                        // 👉 FIXED: Wrapped in GestureDetector to make it clickable!
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, '/my_issues'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                            child: Text('SEE ALL →', style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF10B981))),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -198,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   final issue = _issues[index];
                                   return GestureDetector(
                                     onTap: () {
-                                      // Routes to our new tracking screen!
                                       Navigator.pushNamed(context, '/tracking', arguments: issue);
                                     },
                                     child: Container(
@@ -253,9 +259,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildNavItem(LucideIcons.home, 'HOME', true, () {}),
-                    _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushNamed(context, '/report')),
-                    _buildNavItem(LucideIcons.list, 'MY ISSUES', false, () {}),
-                    _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushNamed(context, '/map')),
+                    _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushReplacementNamed(context, '/report')),
+                    // 👉 FIXED: This now routes to your new screen!
+                    _buildNavItem(LucideIcons.list, 'MY ISSUES', false, () => Navigator.pushReplacementNamed(context, '/my_issues')),
+                    _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushReplacementNamed(context, '/map')),
                   ],
                 ),
               ),
