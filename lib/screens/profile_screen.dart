@@ -4,7 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../services/firebase_service.dart';
 import '../models/issue.dart';
 import '../models/user_profile.dart'; 
-import '../main.dart'; // <-- Imports the themeNotifier!
+import '../main.dart'; // Imports the themeNotifier
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -260,67 +260,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- RESTORED: CHANGE PASSWORD LOGIC ---
-  void _showChangePasswordDialog(bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: bgColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Update Password', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, color: textColor)),
-        content: TextField(
-          obscureText: true, 
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: textColor),
-          decoration: InputDecoration(
-            hintText: 'Enter new password', 
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981), width: 2))
-          )
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF94A3B8), fontWeight: FontWeight.w900))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () { 
-              Navigator.pop(ctx); 
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated securely.'), backgroundColor: Color(0xFF10B981))); 
-            },
-            child: Text('SAVE', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.w900)),
-          )
-        ],
-      ),
-    );
-  }
-
-  // --- RESTORED: DELETE ACCOUNT LOGIC ---
-  void _showDeleteAccountDialog(bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: bgColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete Account?', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, color: const Color(0xFFF43F5E))),
-        content: Text('This action will permanently erase your profile and all your reports from SpotIt. This cannot be undone.', style: GoogleFonts.inter(color: const Color(0xFF64748B))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF94A3B8), fontWeight: FontWeight.w900))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF43F5E), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () async { 
-              Navigator.pop(ctx); 
-              await _firebaseService.logout(); 
-              if (mounted) Navigator.pushReplacementNamed(context, '/login'); 
-            },
-            child: Text('DELETE PERMANENTLY', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.w900)),
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String title) {
     return Padding(padding: const EdgeInsets.only(bottom: 16, top: 8), child: Text(title, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: const Color(0xFF94A3B8), letterSpacing: 1.5)));
   }
@@ -357,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isDestructive ? const Color(0xFF4C1D95).withOpacity(0.1) : cardColor, // Using a deep red/purple tint for destructive in dark mode
+          color: isDestructive ? const Color(0xFF4C1D95).withOpacity(0.1) : cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: isDestructive ? const Color(0xFFE11D48).withOpacity(0.3) : borderColor),
         ),
@@ -385,13 +324,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = _firebaseService.currentUser;
 
-    // THIS LISTENS TO THE GLOBAL THEME SWITCHER
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentMode, child) {
         final isDark = currentMode == ThemeMode.dark;
 
-        // --- DYNAMIC COLOR TOKENS ---
         final bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
         final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
         final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -485,7 +422,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   _buildSectionTitle('APP PREFERENCES'),
                   
-                  // --- THE NEW DARK MODE TOGGLE ---
                   Container(
                     margin: const EdgeInsets.only(bottom: 24),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -523,14 +459,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   _buildSectionTitle('COMMUNITY & ACTIVITY'),
                   _buildActionCard('My Active Reports', 'Track, edit, and view updates on your filed issues', LucideIcons.fileText, const Color(0xFFF59E0B), () => Navigator.pushNamed(context, '/my_issues', arguments: 'MY_REPORTS'), cardColor, borderColor, textColor),
-                  const SizedBox(height: 24),
-
-                  _buildSectionTitle('ACCOUNT SECURITY'),
-                  
-                  // --- RESTORED: BUTTONS NOW POINT TO THE FUNCTIONS! ---
-                  _buildActionCard('Change Password', 'Update your secure login credentials', LucideIcons.key, const Color(0xFF3B82F6), () => _showChangePasswordDialog(isDark), cardColor, borderColor, textColor),
-                  _buildActionCard('Delete Account', 'Permanently erase profile and report data', LucideIcons.trash2, const Color(0xFFE11D48), () => _showDeleteAccountDialog(isDark), cardColor, borderColor, textColor, isDestructive: true),
-                  
                   const SizedBox(height: 32),
 
                   SizedBox(
