@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/sparkle_overlay.dart'; 
 import 'package:lucide_icons/lucide_icons.dart';
 import '../services/firebase_service.dart';
 import '../models/issue.dart';
@@ -331,7 +332,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
 
               // 2. COMMUNITY & ACTIVITY
-              _buildSectionTitle('COMMUNITY & ACTIVITY'),
+              _buildSectionTitle('APP PREFERENCES'),
+              ValueListenableBuilder<bool>(
+                valueListenable: isSparkleModeEnabled,
+                builder: (context, isEnabled, child) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFF1F5F9))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: Color(0xFFFFFBEB), shape: BoxShape.circle), child: const Icon(LucideIcons.sparkles, size: 18, color: Color(0xFFF59E0B))),
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Sparkle Mode', style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                                Text('Fun interactive tap animations', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF94A3B8))),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: isEnabled,
+                          activeColor: const Color(0xFF10B981),
+                          onChanged: (val) => isSparkleModeEnabled.value = val, // Flips the global switch!
+                        )
+                      ],
+                    ),
+                  );
+                }
+              ),
               
               // NEW: MY REPORTS PORTAL
               _buildActionCard(
