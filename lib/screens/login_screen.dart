@@ -11,232 +11,172 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
+  
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _passwordController = TextEditingController(); 
+  
+  bool _isLoginMode = true;
   bool _isLoading = false;
-  String? _errorMessage;
 
-  void _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  void _submitForm() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final name = _nameController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Please fill in all fields.');
+      return;
+    }
+    if (!_isLoginMode && name.isEmpty) {
+      _showError('Please provide your name to register.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
-      await FirebaseService().loginWithEmail(_emailController.text);
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      if (_isLoginMode) {
+        // LOGIN
+        final user = await _firebaseService.loginUser(email: email, password: password);
+        _routeUser(user.role);
+      } else {
+        // REGISTER
+        final user = await _firebaseService.registerUser(name: name, email: email, password: password);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account Created Successfully!'), backgroundColor: Color(0xFF10B981)));
+        }
+        _routeUser(user.role);
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Unable to authenticate: Please try again.";
-      });
+      // Strips the word "Exception:" from the error text
+      _showError(e.toString().replaceAll('Exception: ', ''));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _routeUser(String role) {
+    if (mounted) {
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
       }
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // slate-50
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-          child: Form(
-            key: _formKey,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
-                // Premium Styled Web Logo Icon Placement
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF000000).withOpacity(0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        )
-                      ],
+                // Logo/Brand
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+                      ),
+                      child: const Icon(LucideIcons.mapPin, size: 40, color: Colors.white),
                     ),
-                    child: const Icon(
-                      LucideIcons.mapPin,
-                      size: 32,
-                      color: Color(0xFFF43F5E), // neon pink matching web
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                
-                // Headings matching web fonts
+                const SizedBox(height: 32),
                 Text(
-                  'SPOTIT',
+                  _isLoginMode ? 'Welcome Back' : 'Join SpotIt',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), letterSpacing: -1),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                    color: const Color(0xFF0F172A),
-                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Decentralized Neighborhood Safety & Report Desk',
+                  _isLoginMode ? 'Sign in to track your reports.' : 'Create an account to report civic issues.',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF64748B),
-                  ),
                 ),
                 const SizedBox(height: 48),
 
-                // Card Containing Inputs
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F172A).withOpacity(0.02),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Authenticate',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Type your email ID to login or register instantly',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                // Name Input (Only shown in Sign Up mode)
+                if (!_isLoginMode) ...[
+                  _buildTextField(_nameController, 'Full Name', LucideIcons.user, false),
+                  const SizedBox(height: 16),
+                ],
 
-                      // Email input
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(LucideIcons.mail, size: 18, color: Color(0xFF94A3B8)),
-                          hintText: 'name@organization.com',
-                          hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Color(0xFFF43F5E), width: 1.5),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please write your email';
-                          }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                            return 'Write a valid email address';
-                          }
-                          return null;
-                        },
-                      ),
-                      
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-
-                      // Push Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F172A),
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: const Color(0xFF0F172A).withOpacity(0.6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  'Continue to Desk',
-                                  style: GoogleFonts.spaceGrotesk(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
+                // Email Input
+                _buildTextField(_emailController, 'Email Address', LucideIcons.mail, false),
+                const SizedBox(height: 16),
+                
+                // Password Input
+                _buildTextField(_passwordController, 'Password', LucideIcons.lock, true),
+                const SizedBox(height: 12),
+                
+                // The Admin Quick-Fill Button (As Requested)
+                if (_isLoginMode)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _emailController.text = 'admin@spotit.com';
+                        _passwordController.clear(); // Force them to type the password!
+                      });
+                    },
+                    child: Text(
+                      'Admin? Tap to fill Admin Email.',
+                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF10B981)),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
                 
                 const SizedBox(height: 32),
-                Text(
-                  'Secured with Spotit Public Sandbox Cryptography & Firebase Cloud Infrastructure Node.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF94A3B8),
+
+                // Action Button
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F172A),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: _isLoading 
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(_isLoginMode ? 'SECURE LOGIN' : 'CREATE ACCOUNT', style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // Toggle Mode Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_isLoginMode ? "Don't have an account? " : "Already have an account? ", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B))),
+                    GestureDetector(
+                      onTap: () => setState(() => _isLoginMode = !_isLoginMode),
+                      child: Text(
+                        _isLoginMode ? "Sign Up" : "Login",
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF10B981)),
+                      ),
+                    )
+                  ],
+                )
               ],
             ),
           ),
@@ -245,9 +185,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool isPassword) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE2E8F0))),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+        decoration: InputDecoration(
+          icon: Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        ),
+      ),
+    );
   }
 }
