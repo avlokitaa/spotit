@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,7 +18,7 @@ class _AdminScreenState extends State<AdminScreen> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Issue> _issues = [];
   bool _isLoading = true;
-  bool _isMapView = false; // Toggles between List and Map
+  bool _isMapView = false; 
 
   @override
   void initState() {
@@ -32,6 +33,23 @@ class _AdminScreenState extends State<AdminScreen> {
       _issues = list;
       _isLoading = false;
     });
+  }
+
+  // --- FULL SCREEN IMAGE VIEWER ---
+  void _showFullImage(String url) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: url.startsWith('http') 
+              ? Image.network(url, fit: BoxFit.contain)
+              : Image.file(File(url), fit: BoxFit.contain),
+        ),
+      ),
+    );
   }
 
   // --- CONFIRMATION DIALOG ---
@@ -51,8 +69,8 @@ class _AdminScreenState extends State<AdminScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () async {
-              Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Close bottom sheet
+              Navigator.pop(ctx); 
+              Navigator.pop(context); 
               setState(() => _isLoading = true);
               await _firebaseService.updateIssueStatus(issue.id, newStatus);
               _loadFeed();
@@ -82,8 +100,8 @@ class _AdminScreenState extends State<AdminScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF43F5E), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () async {
-              Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Close bottom sheet
+              Navigator.pop(ctx); 
+              Navigator.pop(context); 
               setState(() => _isLoading = true);
               await _firebaseService.deleteIssue(issue.id);
               _loadFeed();
@@ -104,59 +122,125 @@ class _AdminScreenState extends State<AdminScreen> {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24)), side: BorderSide(color: Color(0xFF1E293B), width: 2)),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(2)))),
-              
-              // Issue Details Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Allows scrolling if the content (like a large image) gets too tall
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85, 
+          minChildSize: 0.5, 
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(issue.title, style: GoogleFonts.spaceGrotesk(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
-                        const SizedBox(height: 4),
-                        Text('Filer: ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF10B981))), // FILER NAME ADDED
-                      ],
+                  Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(2)))),
+                  
+                  // NEW: PHOTOGRAPHIC EVIDENCE PREVIEW
+                  if (issue.imageUrl != null) ...[
+                    Text('EVIDENCE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF64748B), letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _showFullImage(issue.imageUrl!),
+                      child: Container(
+                        width: double.infinity,
+                        height: 180, // Large, clear preview
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF1E293B), width: 2),
+                          image: DecorationImage(
+                            image: issue.imageUrl!.startsWith('http') 
+                                ? NetworkImage(issue.imageUrl!) as ImageProvider
+                                : FileImage(File(issue.imageUrl!)),
+                            fit: BoxFit.cover,
+                          )
+                        ),
+                        child: Align(
+                          alignment: Alignment.bottomRight,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(8)),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(LucideIcons.maximize2, size: 12, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text('Tap to expand', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Issue Details Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(issue.title, style: GoogleFonts.spaceGrotesk(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+                            const SizedBox(height: 4),
+                            Text('Filer: ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF10B981))), 
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: _getStatusColor(issue.status).withOpacity(0.2), borderRadius: BorderRadius.circular(100)),
+                        child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: _getStatusColor(issue.status))),
+                      )
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: _getStatusColor(issue.status).withOpacity(0.2), borderRadius: BorderRadius.circular(100)),
-                    child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: _getStatusColor(issue.status))),
-                  )
+                  const SizedBox(height: 8),
+                  
+                  // Description
+                  if (issue.description != null && issue.description!.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
+                      child: Text(
+                        '"${issue.description!}"',
+                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFCBD5E1), fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+                  Text('UPDATE STATUS', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF64748B), letterSpacing: 1.5)),
+                  const SizedBox(height: 12),
+
+                  // Status Options
+                  _buildStatusOption(issue, 'reported', 'Pending', const Color(0xFFF59E0B), LucideIcons.clock),
+                  _buildStatusOption(issue, 'in-progress', 'In Progress', const Color(0xFF3B82F6), LucideIcons.hammer),
+                  _buildStatusOption(issue, 'resolved', 'Resolved', const Color(0xFF10B981), LucideIcons.checkCircle),
+                  
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFF1E293B))),
+                  
+                  // Danger Zone
+                  Text('DANGER ZONE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFFF43F5E), letterSpacing: 1.5)),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    leading: const Icon(LucideIcons.trash2, color: Color(0xFFF43F5E)),
+                    title: Text('Delete Report', style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFFF43F5E))),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    tileColor: const Color(0xFFF43F5E).withOpacity(0.1),
+                    onTap: () => _confirmDelete(issue),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
-              const SizedBox(height: 24),
-              Text('UPDATE STATUS', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF64748B), letterSpacing: 1.5)),
-              const SizedBox(height: 12),
-
-              // Status Options
-              _buildStatusOption(issue, 'reported', 'Pending', const Color(0xFFF59E0B), LucideIcons.clock),
-              _buildStatusOption(issue, 'in-progress', 'In Progress', const Color(0xFF3B82F6), LucideIcons.hammer),
-              _buildStatusOption(issue, 'resolved', 'Resolved', const Color(0xFF10B981), LucideIcons.checkCircle),
-              
-              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFF1E293B))),
-              
-              // Danger Zone
-              Text('DANGER ZONE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFFF43F5E), letterSpacing: 1.5)),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(LucideIcons.trash2, color: Color(0xFFF43F5E)),
-                title: Text('Delete Report', style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFFF43F5E))),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                tileColor: const Color(0xFFF43F5E).withOpacity(0.1),
-                onTap: () => _confirmDelete(issue),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -191,10 +275,7 @@ class _AdminScreenState extends State<AdminScreen> {
             // FIXED ADMIN HEADER WITH TOGGLE
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
-                border: Border(bottom: BorderSide(color: Color(0xFF1E293B), width: 2))
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF0F172A), border: Border(bottom: BorderSide(color: Color(0xFF1E293B), width: 2))),
               child: Column(
                 children: [
                   Row(
@@ -299,8 +380,15 @@ class _AdminScreenState extends State<AdminScreen> {
                       children: [
                         Text(issue.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
                         const SizedBox(height: 2),
-                        // FILER NAME VISIBLE ON CARD
-                        Text('Filer: ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF10B981))),
+                        Row(
+                          children: [
+                            Text('Filer: ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF10B981))),
+                            if (issue.imageUrl != null) ...[
+                              const SizedBox(width: 8),
+                              const Icon(LucideIcons.image, size: 12, color: Color(0xFF64748B)),
+                            ]
+                          ],
+                        )
                       ],
                     ),
                   ),
@@ -323,7 +411,6 @@ class _AdminScreenState extends State<AdminScreen> {
         initialZoom: 12.0,
       ),
       children: [
-        // Dark theme map tiles for Admin!
         TileLayer(
           urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', 
           userAgentPackageName: 'com.spotit.app',
@@ -335,7 +422,7 @@ class _AdminScreenState extends State<AdminScreen> {
               point: LatLng(issue.latitude!, issue.longitude!),
               width: 40, height: 40,
               child: GestureDetector(
-                onTap: () => _showAdminActionSheet(issue), // Map markers open the same exact Action Sheet!
+                onTap: () => _showAdminActionSheet(issue),
                 child: Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A), shape: BoxShape.circle,

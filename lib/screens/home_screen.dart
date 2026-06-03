@@ -31,6 +31,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // --- DYNAMIC VISUAL HELPERS ---
+  Map<String, dynamic> _getCategoryStyle(String category) {
+    final cat = category.toLowerCase();
+    if (cat.contains('waste') || cat.contains('garbage')) return {'emoji': '🗑️', 'color': Colors.amber.shade700, 'bg': const Color(0xFFFEF9C3)};
+    if (cat.contains('pothole') || cat.contains('road')) return {'emoji': '🕳️', 'color': const Color(0xFF0F172A), 'bg': const Color(0xFFF1F5F9)};
+    if (cat.contains('tree') || cat.contains('green')) return {'emoji': '🌳', 'color': const Color(0xFF059669), 'bg': const Color(0xFFECFDF5)};
+    if (cat.contains('water') || cat.contains('leak')) return {'emoji': '💧', 'color': const Color(0xFF3B82F6), 'bg': const Color(0xFFEFF6FF)};
+    if (cat.contains('light')) return {'emoji': '💡', 'color': const Color(0xFFF59E0B), 'bg': const Color(0xFFFEF3C7)};
+    return {'emoji': '📍', 'color': const Color(0xFFF43F5E), 'bg': const Color(0xFFFFE4E6)};
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'reported': return const Color(0xFFF59E0B);
+      case 'in-progress': return const Color(0xFF3B82F6);
+      case 'resolved': return const Color(0xFF10B981);
+      default: return const Color(0xFF94A3B8);
+    }
+  }
+
   Widget _buildStatCard(String value, String label, Color valueColor, Widget icon) {
     return Expanded(
       child: Container(
@@ -95,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: const Color(0xFFF43F5E),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100), // Extra bottom padding for nav bar
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100), 
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -179,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Recent Reports', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
-                        // 👉 FIXED: Wrapped in GestureDetector to make it clickable!
                         GestureDetector(
                           onTap: () => Navigator.pushNamed(context, '/my_issues'),
                           child: Padding(
@@ -203,6 +222,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 separatorBuilder: (_, __) => const SizedBox(height: 16),
                                 itemBuilder: (context, index) {
                                   final issue = _issues[index];
+                                  final style = _getCategoryStyle(issue.category); // <-- Grabs the dynamic Icon & BG Color
+                                  final statusColor = _getStatusColor(issue.status); // <-- Grabs the dynamic Status Color
+
                                   return GestureDetector(
                                     onTap: () {
                                       Navigator.pushNamed(context, '/tracking', arguments: issue);
@@ -214,16 +236,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                         children: [
                                           Container(
                                             width: 50, height: 50,
-                                            decoration: BoxDecoration(color: const Color(0xFFFEF9C3), borderRadius: BorderRadius.circular(16)),
+                                            decoration: BoxDecoration(color: style['bg'], borderRadius: BorderRadius.circular(16)),
                                             alignment: Alignment.center,
-                                            child: const Text('🚧', style: TextStyle(fontSize: 24)),
+                                            child: Text(style['emoji'], style: const TextStyle(fontSize: 24)),
                                           ),
                                           const SizedBox(width: 16),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(issue.title, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                                                Text(issue.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
                                                 const SizedBox(height: 4),
                                                 Text(issue.address ?? 'Bangalore, KA', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF94A3B8))),
                                               ],
@@ -231,8 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(color: const Color(0xFFFFEDD5), borderRadius: BorderRadius.circular(100)),
-                                            child: Text('PENDING', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFFEA580C))),
+                                            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+                                            child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: statusColor)),
                                           )
                                         ],
                                       ),
@@ -260,7 +282,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _buildNavItem(LucideIcons.home, 'HOME', true, () {}),
                     _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushReplacementNamed(context, '/report')),
-                    // 👉 FIXED: This now routes to your new screen!
                     _buildNavItem(LucideIcons.list, 'MY ISSUES', false, () => Navigator.pushReplacementNamed(context, '/my_issues')),
                     _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushReplacementNamed(context, '/map')),
                   ],

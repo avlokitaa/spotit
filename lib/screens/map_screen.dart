@@ -58,7 +58,7 @@ class _MapScreenState extends State<MapScreen> {
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
         final pin = LatLng(position.latitude, position.longitude);
 
         setState(() {

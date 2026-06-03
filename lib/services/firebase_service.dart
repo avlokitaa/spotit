@@ -130,7 +130,7 @@ class FirebaseService {
       Query query = _firestore.collection('issues');
       if (status != null && status.isNotEmpty) query = query.where('status', isEqualTo: status);
       if (category != null && category.isNotEmpty) query = query.where('category', isEqualTo: category);
-      query = query.orderBy('createdAt', descending: true);
+      query = query.orderBy('createdAt', descending: true).limit(20);
       
       QuerySnapshot snapshot = await query.get();
       return snapshot.docs.map((doc) => Issue.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
