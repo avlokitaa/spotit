@@ -329,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentMode, child) {
-        final isDark = currentMode == ThemeMode.dark;
+        final isDark = currentMode == ThemeMode.dark:
 
         // --- DYNAMIC COLOR TOKENS ---
         final bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
