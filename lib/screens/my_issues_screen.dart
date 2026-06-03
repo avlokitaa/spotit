@@ -17,15 +17,31 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
   List<Issue> _allIssues = [];
   List<Issue> _filteredIssues = [];
   bool _isLoading = true;
+  bool _isInit = true; // Protects the route listener
+  
   String _selectedFilter = 'ALL';
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _filters = ['ALL', 'REPORTED', 'IN-PROGRESS', 'RESOLVED'];
+  // Added URGENT to the pills
+  final List<String> _filters = ['ALL', 'REPORTED', 'IN-PROGRESS', 'RESOLVED', 'URGENT'];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Catch the filter command from the Home Screen stat cards!
+    if (_isInit) {
+      final arg = ModalRoute.of(context)?.settings.arguments as String?;
+      if (arg != null && _filters.contains(arg)) {
+        _selectedFilter = arg;
+      }
+      _isInit = false;
+      _loadIssues();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadIssues();
     _searchController.addListener(_applyFilters);
   }
 
@@ -34,9 +50,9 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
     final list = await _firebaseService.getIssues();
     setState(() {
       _allIssues = list;
-      _filteredIssues = list;
       _isLoading = false;
     });
+    _applyFilters(); // Apply immediately after fetching
   }
 
   void _applyFilters() {
@@ -44,7 +60,16 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
     setState(() {
       _filteredIssues = _allIssues.where((issue) {
         final matchesSearch = issue.title.toLowerCase().contains(query) || (issue.address?.toLowerCase().contains(query) ?? false);
-        final matchesFilter = _selectedFilter == 'ALL' || issue.status.toLowerCase() == _selectedFilter.toLowerCase();
+        
+        bool matchesFilter;
+        if (_selectedFilter == 'ALL') {
+          matchesFilter = true;
+        } else if (_selectedFilter == 'URGENT') {
+          matchesFilter = issue.urgency.toLowerCase() == 'high';
+        } else {
+          matchesFilter = issue.status.toLowerCase() == _selectedFilter.toLowerCase();
+        }
+        
         return matchesSearch && matchesFilter;
       }).toList();
     });
@@ -59,7 +84,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
     }
   }
 
-  // --- FULL SCREEN IMAGE VIEWER ---
   void _showFullImage(String url) {
     showDialog(
       context: context,
@@ -68,7 +92,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
         insetPadding: const EdgeInsets.all(16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          // Handles both Web URLs and Local Device paths flawlessly
           child: url.startsWith('http') 
               ? Image.network(url, fit: BoxFit.contain)
               : Image.file(File(url), fit: BoxFit.contain),
@@ -107,16 +130,19 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Fixed Header Section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('MY REPORTS', style: GoogleFonts.spaceGrotesk(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), letterSpacing: -1)),
+                      Row(
+                        children: [
+                          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(LucideIcons.arrowLeft)),
+                          Text('MY REPORTS', style: GoogleFonts.spaceGrotesk(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), letterSpacing: -1)),
+                        ],
+                      ),
                       const SizedBox(height: 20),
                       
-                      // Search Bar & Filter Button
                       Row(
                         children: [
                           Expanded(
@@ -129,17 +155,10 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 52, height: 52,
-                            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF1F5F9)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]),
-                            child: const Icon(LucideIcons.slidersHorizontal, size: 20, color: Color(0xFF64748B)),
-                          )
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      // Horizontal Filter Pills
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -149,7 +168,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                   ),
                 ),
 
-                // Scrollable List Section
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
@@ -175,14 +193,12 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // THUMBNAIL BOX (Replaces Grey Map Pin)
                                         Container(
                                           width: 70, height: 70,
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFF8FAFC),
                                             borderRadius: BorderRadius.circular(20),
                                             border: Border.all(color: const Color(0xFFE2E8F0)),
-                                            // Displays the image if it exists!
                                             image: issue.imageUrl != null 
                                               ? DecorationImage(
                                                   image: issue.imageUrl!.startsWith('http') 
@@ -192,9 +208,7 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ) 
                                               : null
                                           ),
-                                          child: issue.imageUrl == null 
-                                            ? const Icon(LucideIcons.mapPin, size: 24, color: Color(0xFFCBD5E1))
-                                            : null, // Hide icon if image exists
+                                          child: issue.imageUrl == null ? const Icon(LucideIcons.mapPin, size: 24, color: Color(0xFFCBD5E1)) : null,
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
@@ -212,8 +226,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
-                                              
-                                              // VIEW FULL IMAGE BUTTON (Only shows if image exists)
                                               if (issue.imageUrl != null) ...[
                                                 GestureDetector(
                                                   onTap: () => _showFullImage(issue.imageUrl!),
@@ -232,7 +244,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ),
                                                 const SizedBox(height: 12),
                                               ],
-
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
@@ -252,8 +263,6 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                 ),
               ],
             ),
-
-            // BOTTOM NAVIGATION BAR
             Positioned(
               bottom: 24, left: 24, right: 24,
               child: Container(

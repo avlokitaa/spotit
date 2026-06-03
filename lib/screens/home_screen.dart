@@ -51,50 +51,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildStatCard(String value, String label, Color valueColor, Widget icon) {
+  // Added onTap action parameter
+  Widget _buildStatCard(String value, String label, Color valueColor, Widget icon, VoidCallback onTap) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: valueColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF94A3B8),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                icon,
-              ],
-            )
-          ],
+      child: GestureDetector(
+        onTap: onTap, // Makes the card clickable!
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, style: GoogleFonts.spaceGrotesk(fontSize: 28, fontWeight: FontWeight.w900, color: valueColor)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF94A3B8), letterSpacing: 0.5)),
+                  icon,
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -103,6 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _firebaseService.currentUser;
+
+    // --- DYNAMIC DATABASE CALCULATIONS ---
+    final int totalCount = _issues.length;
+    final int resolvedCount = _issues.where((i) => i.status.toLowerCase() == 'resolved').length;
+    final int pendingCount = _issues.where((i) => i.status.toLowerCase() == 'reported' || i.status.toLowerCase() == 'in-progress').length;
+    final int urgentCount = _issues.where((i) => i.urgency.toLowerCase() == 'high').length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -125,9 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -135,29 +124,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'LOCATION',
-                                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF94A3B8), letterSpacing: 1.5),
-                              ),
+                              Text('LOCATION', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF94A3B8), letterSpacing: 1.5)),
                               Row(
                                 children: [
                                   const Icon(LucideIcons.mapPin, size: 14, color: Color(0xFF10B981)),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    'BANGALORE, KA',
-                                    style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
-                                  ),
+                                  Text('BANGALORE, KA', style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
                                 ],
                               )
                             ],
                           ),
                           Row(
                             children: [
-                              Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF1F5F9))),
-                                child: const Icon(LucideIcons.bell, size: 18, color: Color(0xFF64748B)),
-                              ),
+                              Container(width: 40, height: 40, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF1F5F9))), child: const Icon(LucideIcons.bell, size: 18, color: Color(0xFF64748B))),
                               const SizedBox(width: 8),
                               GestureDetector(
                                 onTap: () => Navigator.pushNamed(context, '/profile'),
@@ -176,20 +155,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 2x2 STATS GRID
+                    // 2x2 DYNAMIC STATS GRID (Routing with filter arguments!)
                     Row(
                       children: [
-                        _buildStatCard('1,000', 'TOTAL REPORTS', const Color(0xFF0F172A), const Text('📊', style: TextStyle(fontSize: 16))),
+                        _buildStatCard(totalCount.toString(), 'TOTAL REPORTS', const Color(0xFF0F172A), const Text('📊', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'ALL')),
                         const SizedBox(width: 16),
-                        _buildStatCard('800', 'RESOLVED', const Color(0xFF10B981), Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFECFDF5), shape: BoxShape.circle), child: const Icon(LucideIcons.check, size: 12, color: Color(0xFF10B981)))),
+                        _buildStatCard(resolvedCount.toString(), 'RESOLVED', const Color(0xFF10B981), Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFECFDF5), shape: BoxShape.circle), child: const Icon(LucideIcons.check, size: 12, color: Color(0xFF10B981))), () => Navigator.pushNamed(context, '/my_issues', arguments: 'RESOLVED')),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildStatCard('180', 'PENDING', const Color(0xFFF59E0B), const Text('⏳', style: TextStyle(fontSize: 16))),
+                        _buildStatCard(pendingCount.toString(), 'PENDING', const Color(0xFFF59E0B), const Text('⏳', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'REPORTED')),
                         const SizedBox(width: 16),
-                        _buildStatCard('20', 'URGENT', const Color(0xFFF43F5E), const Text('🔥', style: TextStyle(fontSize: 16))),
+                        _buildStatCard(urgentCount.toString(), 'URGENT', const Color(0xFFF43F5E), const Text('🔥', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'URGENT')),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -200,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text('Recent Reports', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
                         GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, '/my_issues'),
+                          onTap: () => Navigator.pushNamed(context, '/my_issues', arguments: 'ALL'),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                             child: Text('SEE ALL →', style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF10B981))),
@@ -222,13 +201,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 separatorBuilder: (_, __) => const SizedBox(height: 16),
                                 itemBuilder: (context, index) {
                                   final issue = _issues[index];
-                                  final style = _getCategoryStyle(issue.category); // <-- Grabs the dynamic Icon & BG Color
-                                  final statusColor = _getStatusColor(issue.status); // <-- Grabs the dynamic Status Color
+                                  final style = _getCategoryStyle(issue.category); 
+                                  final statusColor = _getStatusColor(issue.status); 
 
                                   return GestureDetector(
-                                    onTap: () {
-                                      Navigator.pushNamed(context, '/tracking', arguments: issue);
-                                    },
+                                    onTap: () => Navigator.pushNamed(context, '/tracking', arguments: issue),
                                     child: Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFF1F5F9))),
@@ -267,16 +244,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             
-            // FLOATING BOTTOM NAVIGATION BAR
+            // BOTTOM NAVIGATION BAR
             Positioned(
               bottom: 24, left: 24, right: 24,
               child: Container(
                 height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(35),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))]),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
