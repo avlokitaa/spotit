@@ -10,7 +10,7 @@ class Issue {
   final double? latitude;
   final double? longitude;
   final String? address;
-  final String status; // 'reported' | 'assigned' | 'in-progress' | 'resolved'
+  String status; // 'reported' | 'assigned' | 'in-progress' | 'resolved'
   final String? assignedTo;
   final DateTime createdAt;
   final DateTime updatedAt;
