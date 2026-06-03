@@ -35,10 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- DYNAMIC VISUAL HELPERS ---
   Map<String, dynamic> _getCategoryStyle(String category, bool isDark) {
     final cat = category.toLowerCase();
-    // Adjusted backgrounds slightly for dark mode visibility
     if (cat.contains('waste') || cat.contains('garbage')) return {'emoji': '🗑️', 'color': Colors.amber.shade700, 'bg': isDark ? const Color(0xFF422006) : const Color(0xFFFEF9C3)};
     if (cat.contains('pothole') || cat.contains('road')) return {'emoji': '🕳️', 'color': isDark ? Colors.white : const Color(0xFF0F172A), 'bg': isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)};
-    if (cat.contains('tree') || cat.contains('green')) return {'emoji': '🌳', 'color': const Color(0xFF059669), 'bg': isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5)};
+    if (cat.contains('tree') || cat.contains('green')) return {'emoji': '🚧', 'color': const Color(0xFF059669), 'bg': isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5)};
     if (cat.contains('water') || cat.contains('leak')) return {'emoji': '💧', 'color': const Color(0xFF3B82F6), 'bg': isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF)};
     if (cat.contains('light')) return {'emoji': '💡', 'color': const Color(0xFFF59E0B), 'bg': isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7)};
     return {'emoji': '📍', 'color': const Color(0xFFF43F5E), 'bg': isDark ? const Color(0xFF881337) : const Color(0xFFFFE4E6)};
@@ -46,14 +45,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'reported': return const Color(0xFFF59E0B);
+      case 'reported': return const Color(0xFFF97316);
       case 'in-progress': return const Color(0xFF3B82F6);
       case 'resolved': return const Color(0xFF10B981);
       default: return const Color(0xFF94A3B8);
     }
   }
 
-  // Updated to accept Theme Colors!
+  String _getShortId(String fullId) {
+    return fullId.replaceAll('issue_', '').substring(0, 6).toUpperCase();
+  }
+
   Widget _buildStatCard(String value, String label, Color valueColor, Widget icon, VoidCallback onTap, Color cardColor, Color borderColor) {
     return Expanded(
       child: GestureDetector(
@@ -61,9 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: cardColor, // Dynamic Card Color
+            color: cardColor, 
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: borderColor), // Dynamic Border Color
+            border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
             ],
@@ -87,6 +89,99 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // --- NEW: THE NOTIFICATION DRAWER ---
+  void _showNotificationsSheet(BuildContext context, bool isDark, Color bgColor, Color cardColor, Color textColor, Color borderColor, Color mutedColor) {
+    // Finds any issue that the Admin has updated (status is not just 'reported')
+    final updatedIssues = _issues.where((i) => i.status.toLowerCase() != 'reported').toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: bgColor,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7, minChildSize: 0.4, maxChildSize: 0.9, expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(2)))),
+                  
+                  Row(
+                    children: [
+                      Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(LucideIcons.bellRing, color: Color(0xFF3B82F6))),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Notifications', style: GoogleFonts.spaceGrotesk(fontSize: 20, fontWeight: FontWeight.w900, color: textColor)),
+                            Text('Admin updates for your area', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: mutedColor)),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  Expanded(
+                    child: updatedIssues.isEmpty
+                      ? Center(child: Text('No new updates yet.', style: GoogleFonts.inter(color: mutedColor)))
+                      : ListView.separated(
+                          controller: scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: updatedIssues.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final issue = updatedIssues[index];
+                            final statusColor = _getStatusColor(issue.status);
+
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                Navigator.pushNamed(context, '/tracking', arguments: issue);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40, height: 40,
+                                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), shape: BoxShape.circle),
+                                      child: Icon(issue.status.toLowerCase() == 'resolved' ? LucideIcons.checkCircle : LucideIcons.clock, color: statusColor, size: 20),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Issue #${_getShortId(issue.id)} is ${issue.status.toUpperCase()}', style: GoogleFonts.spaceGrotesk(fontSize: 13, fontWeight: FontWeight.w900, color: textColor)),
+                                          const SizedBox(height: 2),
+                                          Text('Reported by ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: mutedColor)),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(LucideIcons.chevronRight, size: 16, color: mutedColor)
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                  )
+                ],
+              ),
+            );
+          },
+        );
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
@@ -99,13 +194,20 @@ class _HomeScreenState extends State<HomeScreen> {
         final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
         final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
         final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+        final mutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-        // FIX: CALCULATE STATS AND GET USER HERE
         final user = _firebaseService.currentUser;
+        
+        // --- NEW: DYNAMIC USER WARD ---
+        final currentWard = (user?.ward ?? 'J.P. NAGAR').toUpperCase();
+
         final totalCount = _issues.length;
         final resolvedCount = _issues.where((i) => i.status.toLowerCase() == 'resolved').length;
         final pendingCount = _issues.where((i) => i.status.toLowerCase() == 'reported').length;
         final urgentCount = _issues.where((i) => i.urgency.toUpperCase() == 'HIGH').length;
+
+        // Determines if there are unread updates for the red dot
+        final hasUpdates = _issues.any((i) => i.status.toLowerCase() != 'reported');
 
         return Scaffold(
           backgroundColor: bgColor,
@@ -122,11 +224,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // TOP LOCATION HEADER
+                        
+                        // --- TOP LOCATION HEADER ---
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: cardColor, // Replaced Colors.white
+                            color: cardColor, 
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(color: borderColor),
                             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4))],
@@ -137,19 +240,37 @@ class _HomeScreenState extends State<HomeScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('LOCATION', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF94A3B8), letterSpacing: 1.5)),
+                                  Text('CURRENT WARD', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: mutedColor, letterSpacing: 1.5)),
                                   Row(
                                     children: [
                                       const Icon(LucideIcons.mapPin, size: 14, color: Color(0xFF10B981)),
                                       const SizedBox(width: 4),
-                                      Text('BANGALORE, KA', style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: textColor)), // Replaced 0xFF0F172A
+                                      Text(currentWard, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: textColor)), 
                                     ],
                                   )
                                 ],
                               ),
                               Row(
                                 children: [
-                                  Container(width: 40, height: 40, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: borderColor)), child: const Icon(LucideIcons.bell, size: 18, color: Color(0xFF64748B))),
+                                  // --- INTERACTIVE NOTIFICATION BELL ---
+                                  GestureDetector(
+                                    onTap: () => _showNotificationsSheet(context, isDark, bgColor, cardColor, textColor, borderColor, mutedColor),
+                                    child: Container(
+                                      width: 40, height: 40, 
+                                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: borderColor)), 
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Icon(LucideIcons.bell, size: 18, color: mutedColor),
+                                          if (hasUpdates)
+                                            Positioned(
+                                              top: 10, right: 12,
+                                              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: const Color(0xFFF43F5E), shape: BoxShape.circle, border: Border.all(color: cardColor, width: 1.5))),
+                                            )
+                                        ],
+                                      )
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
                                   GestureDetector(
                                     onTap: () => Navigator.pushNamed(context, '/profile'),
@@ -179,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            _buildStatCard(pendingCount.toString(), 'PENDING', const Color(0xFFF59E0B), const Text('⏳', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'REPORTED'), cardColor, borderColor),
+                            _buildStatCard(pendingCount.toString(), 'PENDING', const Color(0xFFF97316), const Text('⏳', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'REPORTED'), cardColor, borderColor),
                             const SizedBox(width: 16),
                             _buildStatCard(urgentCount.toString(), 'URGENT', const Color(0xFFF43F5E), const Text('🔥', style: TextStyle(fontSize: 16)), () => Navigator.pushNamed(context, '/my_issues', arguments: 'URGENT'), cardColor, borderColor),
                           ],
@@ -237,14 +358,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   children: [
                                                     Text(issue.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: textColor)),
                                                     const SizedBox(height: 4),
-                                                    Text(issue.address ?? 'Bangalore, KA', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF94A3B8))),
+                                                    Text(issue.address ?? 'Bangalore, KA', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: mutedColor)),
                                                   ],
                                                 ),
                                               ),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                 decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
-                                                child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: statusColor)),
+                                                child: Text(issue.status == 'reported' ? 'PENDING' : issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: statusColor)),
                                               )
                                             ],
                                           ),
@@ -268,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _buildNavItem(LucideIcons.home, 'HOME', true, () {}, textColor),
                         _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushReplacementNamed(context, '/report'), textColor),
-                        _buildNavItem(LucideIcons.list, 'MY ISSUES', false, () => Navigator.pushReplacementNamed(context, '/my_issues'), textColor),
+                        _buildNavItem(LucideIcons.list, 'FEED', false, () => Navigator.pushReplacementNamed(context, '/my_issues'), textColor),
                         _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushReplacementNamed(context, '/map'), textColor),
                       ],
                     ),
@@ -278,11 +399,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         );
-      } // FIX: Added missing closing bracket for the builder
-    ); // FIX: Added missing closing bracket for the ValueListenableBuilder
+      }
+    ); 
   }
 
-  // Updated to accept Theme Colors!
   Widget _buildNavItem(IconData icon, String label, bool isActive, VoidCallback onTap, Color textColor) {
     return GestureDetector(
       onTap: onTap,
