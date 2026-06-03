@@ -3,7 +3,8 @@ class UserProfile {
   final String email;
   final String displayName;
   final String photoURL;
-  final String role; // 'user' | 'admin'
+  final String role;
+  String ward; // <-- NEW: Neighborhood Network anchor
 
   UserProfile({
     required this.uid,
@@ -11,17 +12,8 @@ class UserProfile {
     required this.displayName,
     required this.photoURL,
     required this.role,
+    this.ward = 'J.P. Nagar',
   });
-
-  factory UserProfile.fromMap(Map<String, dynamic> map, String id) {
-    return UserProfile(
-      uid: id,
-      email: map['email'] ?? '',
-      displayName: map['displayName'] ?? '',
-      photoURL: map['photoURL'] ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=$id',
-      role: map['role'] ?? 'user',
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -30,6 +22,18 @@ class UserProfile {
       'displayName': displayName,
       'photoURL': photoURL,
       'role': role,
+      'ward': ward,
     };
+  }
+
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
+      uid: map['uid'] ?? '',
+      email: map['email'] ?? '',
+      displayName: map['displayName'] ?? '',
+      photoURL: map['photoURL'] ?? '',
+      role: map['role'] ?? 'user',
+      ward: map['ward'] ?? 'J.P. Nagar',
+    );
   }
 }
