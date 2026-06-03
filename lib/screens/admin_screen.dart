@@ -203,13 +203,14 @@ class _AdminScreenState extends State<AdminScreen> {
                   const SizedBox(height: 8),
                   
                   // Description
-                  if (issue.description != null && issue.description!.isNotEmpty) ...[
+                  // Description
+                  if (issue.description.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
                       child: Text(
-                        '"${issue.description!}"',
+                        '"${issue.description}"',
                         style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFCBD5E1), fontStyle: FontStyle.italic),
                       ),
                     ),
