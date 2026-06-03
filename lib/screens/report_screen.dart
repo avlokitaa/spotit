@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart'; // <-- Added Map
-import 'package:latlong2/latlong.dart'; // <-- Added Coordinates
+import 'package:flutter/foundation.dart'; // <-- Added for debugPrint
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:geolocator/geolocator.dart';
@@ -25,8 +26,6 @@ class _ReportScreenState extends State<ReportScreen> {
   
   double _latitude = 12.9063;
   double _longitude = 77.5857;
-  String _detectedAddress = 'Auto detected using GPS';
-  bool _fetchingLocation = false;
   bool _submitting = false;
   
   File? _selectedImage; 
@@ -59,7 +58,6 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _fetchLocationOnce() async {
-    setState(() => _fetchingLocation = true);
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -67,18 +65,21 @@ class _ReportScreenState extends State<ReportScreen> {
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
-        setState(() {
-          _latitude = pos.latitude;
-          _longitude = pos.longitude;
-          _detectedAddress = '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
-        });
+        // FIX: Updated Geolocator syntax
+        Position pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        );
+        if (mounted) {
+          setState(() {
+            _latitude = pos.latitude;
+            _longitude = pos.longitude;
+          });
+        }
       }
     } catch (e) {
-      print('Incident report address failed: $e');
-    } finally {
-      setState(() => _fetchingLocation = false);
-    }
+      // FIX: Changed print() to debugPrint()
+      debugPrint('Incident report address failed: $e');
+    } 
   }
 
   Future<void> _pickImage() async {
@@ -149,13 +150,13 @@ class _ReportScreenState extends State<ReportScreen> {
                   icon: const Icon(LucideIcons.map, size: 14), label: Text('USE WARD CENTER COORDS', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 11)),
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                   onPressed: () {
-                    setState(() { _latitude = wardLat; _longitude = wardLng; _detectedAddress = 'Set to $_selectedWard Center'; });
+                    // FIX: Removed unused _detectedAddress variable
+                    setState(() { _latitude = wardLat; _longitude = wardLng; });
                     Navigator.pop(ctx);
                     _executeSubmission();
                   },
                 ),
                 const SizedBox(height: 8),
-                // UPDATED: Now triggers the Map Selection Dialog!
                 OutlinedButton.icon(
                   icon: const Icon(LucideIcons.mapPin, size: 14), label: Text('PIN ON MAP', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 11)),
                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0F172A), side: const BorderSide(color: Color(0xFFE2E8F0)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
@@ -174,14 +175,12 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // --- NEW INTERACTIVE MAP PIN DIALOG ---
   void _showMapSelectionDialog() {
     LatLng tempLocation = LatLng(_latitude, _longitude);
 
     showDialog(
       context: context, barrierDismissible: false,
       builder: (BuildContext ctx) {
-        // StatefulBuilder is required here so the marker updates instantly when you tap!
         return StatefulBuilder(
           builder: (context, setStateSB) {
             return AlertDialog(
@@ -204,7 +203,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       initialCenter: tempLocation,
                       initialZoom: 14.0,
                       onTap: (tapPosition, point) {
-                        setStateSB(() => tempLocation = point); // Updates the pin location
+                        setStateSB(() => tempLocation = point);
                       },
                     ),
                     children: [
@@ -230,13 +229,13 @@ class _ReportScreenState extends State<ReportScreen> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () {
+                    // FIX: Removed unused _detectedAddress variable
                     setState(() { 
                       _latitude = tempLocation.latitude; 
                       _longitude = tempLocation.longitude; 
-                      _detectedAddress = 'Manually Pinned on Map'; 
                     });
                     Navigator.pop(ctx);
-                    _executeSubmission(); // Proceed with submission!
+                    _executeSubmission(); 
                   },
                   child: Text('SAVE & SUBMIT', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.w900)),
                 )
@@ -288,7 +287,6 @@ class _ReportScreenState extends State<ReportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -303,7 +301,6 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // PERFECTLY CENTERED CATEGORY GRID
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -349,7 +346,6 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Ward and Severity Row 
                     Row(
                       children: [
                         Expanded(
@@ -401,7 +397,6 @@ class _ReportScreenState extends State<ReportScreen> {
                                             decoration: BoxDecoration(
                                               color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
                                               borderRadius: BorderRadius.circular(8),
-                                              boxShadow: isSelected ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
                                             ),
                                             alignment: Alignment.center,
                                             child: Text(u, style: GoogleFonts.spaceGrotesk(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : const Color(0xFF94A3B8))),
@@ -419,7 +414,6 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Description with functional AI FILL Button
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFF1F5F9))),
@@ -463,7 +457,6 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Upload Image Panel
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFF1F5F9))),
@@ -515,7 +508,6 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Submit Button
                     SizedBox(
                       height: 56,
                       child: ElevatedButton.icon(
@@ -537,12 +529,16 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
 
-            // Bottom Nav 
+            // FIX: Changed bottom nav shadow from withOpacity to withValues to clear deprecation warning
             Positioned(
               bottom: 24, left: 24, right: 24,
               child: Container(
                 height: 70,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))]),
+                decoration: BoxDecoration(
+                  color: Colors.white, 
+                  borderRadius: BorderRadius.circular(35), 
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))]
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
