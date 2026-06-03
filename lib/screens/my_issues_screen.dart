@@ -272,10 +272,10 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
-                                              
-                                              // NEW: Description Snippet (Only in Community View)
-                                              if (_isCommunityView && issue.description != null && issue.description!.isNotEmpty) ...[
-                                                Text('"${issue.description!}"', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF64748B))),
+                            
+                                             // NEW: Description Snippet (Only in Community View)
+                                              if (_isCommunityView && issue.description.isNotEmpty) ...[
+                                                Text('"${issue.description}"', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF64748B))),
                                                 const SizedBox(height: 12),
                                               ],
 
