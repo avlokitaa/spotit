@@ -17,22 +17,27 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
   List<Issue> _allIssues = [];
   List<Issue> _filteredIssues = [];
   bool _isLoading = true;
-  bool _isInit = true; // Protects the route listener
+  bool _isInit = true; 
+  
+  // NEW: The Master Toggle!
+  bool _isCommunityView = true; 
   
   String _selectedFilter = 'ALL';
   final TextEditingController _searchController = TextEditingController();
 
-  // Added URGENT to the pills
   final List<String> _filters = ['ALL', 'REPORTED', 'IN-PROGRESS', 'RESOLVED', 'URGENT'];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Catch the filter command from the Home Screen stat cards!
     if (_isInit) {
       final arg = ModalRoute.of(context)?.settings.arguments as String?;
-      if (arg != null && _filters.contains(arg)) {
+      if (arg == 'MY_REPORTS') {
+        _isCommunityView = false;
+        _selectedFilter = 'ALL';
+      } else if (arg != null && _filters.contains(arg)) {
         _selectedFilter = arg;
+        _isCommunityView = true; 
       }
       _isInit = false;
       _loadIssues();
@@ -52,25 +57,27 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
       _allIssues = list;
       _isLoading = false;
     });
-    _applyFilters(); // Apply immediately after fetching
+    _applyFilters(); 
   }
 
+  // --- THE NEW SPLIT FILTER LOGIC ---
   void _applyFilters() {
     final query = _searchController.text.toLowerCase();
+    final currentUserId = _firebaseService.currentUser?.uid;
+
     setState(() {
       _filteredIssues = _allIssues.where((issue) {
+        // 1. Split logic: Community vs My Reports
+        if (!_isCommunityView && issue.reporterUid != currentUserId) return false;
+
+        // 2. Search Box Logic
         final matchesSearch = issue.title.toLowerCase().contains(query) || (issue.address?.toLowerCase().contains(query) ?? false);
-        
-        bool matchesFilter;
-        if (_selectedFilter == 'ALL') {
-          matchesFilter = true;
-        } else if (_selectedFilter == 'URGENT') {
-          matchesFilter = issue.urgency.toLowerCase() == 'high';
-        } else {
-          matchesFilter = issue.status.toLowerCase() == _selectedFilter.toLowerCase();
-        }
-        
-        return matchesSearch && matchesFilter;
+        if (!matchesSearch) return false;
+
+        // 3. Status Pill Logic
+        if (_selectedFilter == 'ALL') return true;
+        if (_selectedFilter == 'URGENT') return issue.urgency.toLowerCase() == 'high';
+        return issue.status.toLowerCase() == _selectedFilter.toLowerCase();
       }).toList();
     });
   }
@@ -92,9 +99,39 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
         insetPadding: const EdgeInsets.all(16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: url.startsWith('http') 
-              ? Image.network(url, fit: BoxFit.contain)
-              : Image.file(File(url), fit: BoxFit.contain),
+          child: url.startsWith('http') ? Image.network(url, fit: BoxFit.contain) : Image.file(File(url), fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+
+  // Mock Share Function for Prototype
+  void _handleShare(Issue issue) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sharing "${issue.title}" to neighborhood group...'),
+        backgroundColor: const Color(0xFF3B82F6),
+        behavior: SnackBarBehavior.floating,
+      )
+    );
+  }
+
+  Widget _buildToggleBtn(String label, IconData icon, bool isActive) {
+    return GestureDetector(
+      onTap: () {
+        setState(() => _isCommunityView = label == 'COMMUNITY');
+        _applyFilters();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: isActive ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(100), boxShadow: isActive ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : []),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8)),
+            const SizedBox(width: 8),
+            Text(label, style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w900, color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8))),
+          ],
         ),
       ),
     );
@@ -109,11 +146,7 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF10B981) : Colors.white,
-          borderRadius: BorderRadius.circular(100),
-          boxShadow: [if (!isActive) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
-        ),
+        decoration: BoxDecoration(color: isActive ? const Color(0xFF10B981) : Colors.white, borderRadius: BorderRadius.circular(100), boxShadow: [if (!isActive) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))]),
         child: Text(label, style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.w900, color: isActive ? Colors.white : const Color(0xFF94A3B8), letterSpacing: 0.5)),
       ),
     );
@@ -137,12 +170,25 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                     children: [
                       Row(
                         children: [
-                          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(LucideIcons.arrowLeft)),
-                          Text('MY REPORTS', style: GoogleFonts.spaceGrotesk(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), letterSpacing: -1)),
+                          IconButton(onPressed: () => Navigator.pushReplacementNamed(context, '/home'), icon: const Icon(LucideIcons.arrowLeft)),
+                          Text(_isCommunityView ? 'COMMUNITY' : 'MY REPORTS', style: GoogleFonts.spaceGrotesk(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), letterSpacing: -1)),
                         ],
                       ),
                       const SizedBox(height: 20),
                       
+                      // THE NEW VIEW TOGGLE
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(100)),
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildToggleBtn('COMMUNITY', LucideIcons.globe, _isCommunityView)),
+                            Expanded(child: _buildToggleBtn('PERSONAL', LucideIcons.user, !_isCommunityView)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       Row(
                         children: [
                           Expanded(
@@ -157,7 +203,7 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -172,7 +218,7 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
                       : _filteredIssues.isEmpty
-                          ? Center(child: Text('No reports match your filters.', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500)))
+                          ? Center(child: Text(_isCommunityView ? 'No community reports match.' : 'You have no active reports.', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500)))
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
                               physics: const BouncingScrollPhysics(),
@@ -196,16 +242,9 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                         Container(
                                           width: 70, height: 70,
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF8FAFC),
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0)),
                                             image: issue.imageUrl != null 
-                                              ? DecorationImage(
-                                                  image: issue.imageUrl!.startsWith('http') 
-                                                    ? NetworkImage(issue.imageUrl!) as ImageProvider
-                                                    : FileImage(File(issue.imageUrl!)),
-                                                  fit: BoxFit.cover,
-                                                ) 
+                                              ? DecorationImage(image: issue.imageUrl!.startsWith('http') ? NetworkImage(issue.imageUrl!) as ImageProvider : FileImage(File(issue.imageUrl!)), fit: BoxFit.cover) 
                                               : null
                                           ),
                                           child: issue.imageUrl == null ? const Icon(LucideIcons.mapPin, size: 24, color: Color(0xFFCBD5E1)) : null,
@@ -216,7 +255,14 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(issue.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A), height: 1.1)),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(height: 4),
+                                              
+                                              // NEW: Reporter Name (Only in Community View)
+                                              if (_isCommunityView) ...[
+                                                Text('Reported by ${issue.reporterName}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF10B981))),
+                                                const SizedBox(height: 8),
+                                              ],
+
                                               Row(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
@@ -226,6 +272,13 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
+                                              
+                                              // NEW: Description Snippet (Only in Community View)
+                                              if (_isCommunityView && issue.description != null && issue.description!.isNotEmpty) ...[
+                                                Text('"${issue.description!}"', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF64748B))),
+                                                const SizedBox(height: 12),
+                                              ],
+
                                               if (issue.imageUrl != null) ...[
                                                 GestureDetector(
                                                   onTap: () => _showFullImage(issue.imageUrl!),
@@ -244,11 +297,28 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                                                 ),
                                                 const SizedBox(height: 12),
                                               ],
+                                              
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(100)), child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5))),
-                                                  Text('${issue.urgency.toUpperCase()} PRIORITY', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: accentColor, letterSpacing: 0.5))
+                                                  Row(
+                                                    children: [
+                                                      Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(100)), child: Text(issue.status.toUpperCase(), style: GoogleFonts.spaceGrotesk(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5))),
+                                                      const SizedBox(width: 8),
+                                                      Text('${issue.urgency.toUpperCase()} PRIORITY', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: accentColor, letterSpacing: 0.5)),
+                                                    ],
+                                                  ),
+                                                  
+                                                  // NEW: Share Button (Only in Community View)
+                                                  if (_isCommunityView)
+                                                    GestureDetector(
+                                                      onTap: () => _handleShare(issue),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(6),
+                                                        decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
+                                                        child: const Icon(LucideIcons.share2, size: 14, color: Color(0xFF64748B)),
+                                                      ),
+                                                    )
                                                 ],
                                               )
                                             ],
@@ -273,7 +343,8 @@ class _MyIssuesScreenState extends State<MyIssuesScreen> {
                   children: [
                     _buildNavItem(LucideIcons.home, 'HOME', false, () => Navigator.pushReplacementNamed(context, '/home')),
                     _buildNavItem(LucideIcons.plusCircle, 'REPORT', false, () => Navigator.pushReplacementNamed(context, '/report')),
-                    _buildNavItem(LucideIcons.list, 'MY ISSUES', true, () {}),
+                    // Renamed from MY ISSUES to FEED
+                    _buildNavItem(LucideIcons.list, 'FEED', true, () {}), 
                     _buildNavItem(LucideIcons.map, 'MAP', false, () => Navigator.pushReplacementNamed(context, '/map')),
                   ],
                 ),

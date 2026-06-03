@@ -1,6 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+// --- GLOBAL STATE TOGGLE ---
+// By default, let's keep it turned off until they flip the switch in the profile!
+final ValueNotifier<bool> isSparkleModeEnabled = ValueNotifier<bool>(false);
+
 class Sparkle {
   final String id;
   double x;
@@ -29,7 +33,6 @@ class Sparkle {
 
 class SparkleOverlay extends StatefulWidget {
   final Widget child;
-
   const SparkleOverlay({super.key, required this.child});
 
   @override
@@ -74,7 +77,6 @@ class _SparkleOverlayState extends State<SparkleOverlay> with SingleTickerProvid
         s.rotation += s.rotationSpeed;
         s.scale -= 0.04; // decay rate
       }
-      // Remove dead sparkles or off-screen ones
       _sparkles.removeWhere((s) => s.scale <= 0 || s.y > MediaQuery.of(context).size.height + 50);
     });
 
@@ -84,7 +86,6 @@ class _SparkleOverlayState extends State<SparkleOverlay> with SingleTickerProvid
   }
 
   void _spawnSparkles(Offset globalPosition) {
-    // Generate gentle burst of 3 to 6 sparkles on tap
     final count = _random.nextInt(4) + 3;
     
     for (int i = 0; i < count; i++) {
@@ -122,35 +123,42 @@ class _SparkleOverlayState extends State<SparkleOverlay> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (PointerDownEvent event) {
-        _spawnSparkles(event.position);
+    // Listens to the global toggle switch!
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSparkleModeEnabled,
+      builder: (context, isEnabled, childWidget) {
+        // If turned off, just return the app normally with no listeners.
+        if (!isEnabled) return widget.child;
+
+        // If turned on, wrap the app in the tap listener!
+        return Listener(
+          onPointerDown: (PointerDownEvent event) {
+            _spawnSparkles(event.position);
+          },
+          child: Stack(
+            children: [
+              widget.child,
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: SparklePainter(sparkles: _sparkles),
+                  child: Container(),
+                ),
+              )
+            ],
+          ),
+        );
       },
-      child: Stack(
-        children: [
-          widget.child,
-          IgnorePointer(
-            child: CustomPaint(
-              painter: SparklePainter(sparkles: _sparkles),
-              child: Container(),
-            ),
-          )
-        ],
-      ),
     );
   }
 }
 
 class SparklePainter extends CustomPainter {
   final List<Sparkle> sparkles;
-
   SparklePainter({required this.sparkles});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
     for (var sparkle in sparkles) {
       if (sparkle.scale <= 0) continue;
@@ -166,27 +174,16 @@ class SparklePainter extends CustomPainter {
           color: sparkle.color,
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(
-              blurRadius: 8.0,
-              color: Colors.white.withOpacity(0.8),
-            ),
-          ],
+          shadows: [Shadow(blurRadius: 8.0, color: Colors.white.withOpacity(0.8))],
         ),
       );
 
       textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(-textPainter.width / 2, -textPainter.height / 2),
-      );
-
+      textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
       canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(covariant SparklePainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(covariant SparklePainter oldDelegate) => true;
 }

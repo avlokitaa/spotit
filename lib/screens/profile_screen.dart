@@ -339,7 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Track, edit, and view updates on your filed issues', 
                 LucideIcons.fileText, 
                 const Color(0xFFF59E0B), 
-                () => Navigator.pushNamed(context, '/my_issues') // Routes instantly to the interactive feed!
+                () => Navigator.pushNamed(context, '/my_issues', arguments: 'MY_REPORTS')
               ),
 
               _buildActionCard(
